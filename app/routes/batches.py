@@ -3,6 +3,7 @@
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
+from app.errors import error
 
 from app.extensions import db
 from app.models import Batch
@@ -11,10 +12,6 @@ from app.models import Batch
 batches_bp = Blueprint("batches", __name__, url_prefix="/api/batches")
 
 BATCH_STATUSES = {"open", "in_review", "done"}
-
-
-def error(message, code):
-    return jsonify(error=message), code
 
 
 @batches_bp.get("")
@@ -54,13 +51,13 @@ def create_batch():
 
 @batches_bp.get("/<int:batch_id>")
 def get_batch(batch_id):
-    batch = db.get_or_404(Batch, batch_id)  # returns 404 if the id doesn't exist
+    batch = db.get_or_404(Batch, batch_id, description="batch not found")
     return jsonify(batch.to_dict()), 200
 
 
 @batches_bp.patch("/<int:batch_id>")
 def update_batch(batch_id):
-    batch = db.get_or_404(Batch, batch_id)
+    batch = db.get_or_404(Batch, batch_id, description="batch not found")
     data = request.get_json(silent=True) or {}
 
     allowed = {"name", "scenario", "target_scenes", "status"}
@@ -85,7 +82,7 @@ def update_batch(batch_id):
 
 @batches_bp.delete("/<int:batch_id>")
 def delete_batch(batch_id):
-    batch = db.get_or_404(Batch, batch_id)
+    batch = db.get_or_404(Batch, batch_id, description="batch not found")
     db.session.delete(batch)  # its scenes are deleted too (cascade)
     db.session.commit()
     return "", 204  # 204 = success with an empty body

@@ -25,4 +25,11 @@ def create_app(config_class=Config):
     from app.routes.batches import batches_bp
     app.register_blueprint(batches_bp)
 
+    from app.routes.scenes import scenes_bp
+    app.register_blueprint(scenes_bp)
+
+    # every error returns JSON
+    from app.errors import register_error_handlers
+    register_error_handlers(app)
+
     return app
