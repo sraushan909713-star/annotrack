@@ -3,73 +3,52 @@
 
 from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
-from app.errors import error
 
+from app.errors import error
 from app.extensions import db
 from app.models import Batch
+from app.schemas import BATCH_STATUSES, batch_schema, batches_schema
 
-# every route in this file starts with /api/batches
 batches_bp = Blueprint("batches", __name__, url_prefix="/api/batches")
-
-BATCH_STATUSES = {"open", "in_review", "done"}
 
 
 @batches_bp.get("")
 def list_batches():
     query = db.select(Batch).order_by(Batch.id)
-    status = request.args.get("status")  # reads ?status=open from the URL
+    status = request.args.get("status")
     if status:
         if status not in BATCH_STATUSES:
-            return error(f"status must be one of {sorted(BATCH_STATUSES)}", 400)
+            return error(f"status must be one of {BATCH_STATUSES}", 400)
         query = query.where(Batch.status == status)
     batches = db.session.scalars(query).all()
-    return jsonify([b.to_dict() for b in batches]), 200
+    return jsonify(batches_schema.dump(batches)), 200
 
 
 @batches_bp.post("")
 def create_batch():
-    data = request.get_json(silent=True) or {}  # bad or missing JSON becomes {}
-    name = data.get("name")
-    scenario = data.get("scenario")
-    target = data.get("target_scenes", 0)
-
-    # simple checks for now; Marshmallow replaces these on Day 2
-    if not name or not scenario:
-        return error("name and scenario are required", 400)
-    if not isinstance(target, int) or target < 0:
-        return error("target_scenes must be an integer >= 0", 400)
-
-    batch = Batch(name=name, scenario=scenario, target_scenes=target)
+    # load() checks the input; bad input raises ValidationError -> 400 (errors.py)
+    data = batch_schema.load(request.get_json(silent=True) or {})
+    batch = Batch(**data)
     db.session.add(batch)
     try:
         db.session.commit()
-    except IntegrityError:  # the database rejected a duplicate name
+    except IntegrityError:
         db.session.rollback()
-        return error(f"batch '{name}' already exists", 409)
-    return jsonify(batch.to_dict()), 201
+        return error(f"batch '{data['name']}' already exists", 409)
+    return jsonify(batch_schema.dump(batch)), 201
 
 
 @batches_bp.get("/<int:batch_id>")
 def get_batch(batch_id):
     batch = db.get_or_404(Batch, batch_id, description="batch not found")
-    return jsonify(batch.to_dict()), 200
+    return jsonify(batch_schema.dump(batch)), 200
 
 
 @batches_bp.patch("/<int:batch_id>")
 def update_batch(batch_id):
     batch = db.get_or_404(Batch, batch_id, description="batch not found")
-    data = request.get_json(silent=True) or {}
-
-    allowed = {"name", "scenario", "target_scenes", "status"}
-    unknown = set(data) - allowed
-    if unknown:
-        return error(f"unknown fields: {sorted(unknown)}", 400)
-    if "status" in data and data["status"] not in BATCH_STATUSES:
-        return error(f"status must be one of {sorted(BATCH_STATUSES)}", 400)
-    if "target_scenes" in data and (not isinstance(data["target_scenes"], int) or data["target_scenes"] < 0):
-        return error("target_scenes must be an integer >= 0", 400)
-
-    # PATCH = change only the fields that were sent
+    # partial=True: no field is required, but every field that IS sent is checked
+    data = batch_schema.load(request.get_json(silent=True) or {}, partial=True)
     for field, value in data.items():
         setattr(batch, field, value)
     try:
@@ -77,12 +56,12 @@ def update_batch(batch_id):
     except IntegrityError:
         db.session.rollback()
         return error("a batch with that name already exists", 409)
-    return jsonify(batch.to_dict()), 200
+    return jsonify(batch_schema.dump(batch)), 200
 
 
 @batches_bp.delete("/<int:batch_id>")
 def delete_batch(batch_id):
     batch = db.get_or_404(Batch, batch_id, description="batch not found")
-    db.session.delete(batch)  # its scenes are deleted too (cascade)
+    db.session.delete(batch)
     db.session.commit()
-    return "", 204  # 204 = success with an empty body
+    return "", 204

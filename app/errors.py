@@ -3,6 +3,7 @@
 
 from flask import jsonify
 from werkzeug.exceptions import HTTPException
+from marshmallow import ValidationError
 
 
 def error(message, code):
@@ -20,3 +21,8 @@ def register_error_handlers(app):
     def handle_unexpected_error(e):
         app.logger.exception(e)
         return error("internal server error", 500)
+    
+    # bad input anywhere -> 400 with the error for each field
+    @app.errorhandler(ValidationError)
+    def handle_validation_error(e):
+        return jsonify(error="validation failed", details=e.messages), 400

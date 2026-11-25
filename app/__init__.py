@@ -4,7 +4,7 @@
 from flask import Flask
 
 from config import Config
-from app.extensions import db, migrate
+from app.extensions import db, migrate, jwt
 
 
 def create_app(config_class=Config):
@@ -14,6 +14,7 @@ def create_app(config_class=Config):
     # connect database and migrations to this app
     db.init_app(app)
     migrate.init_app(app, db, render_as_batch=True)
+    jwt.init_app(app)
 
     # needed so migrations can find our tables
     from app import models  # noqa: F401

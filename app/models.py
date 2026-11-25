@@ -29,17 +29,6 @@ class Batch(db.Model):
         db.CheckConstraint("status IN ('open', 'in_review', 'done')", name="ck_batch_status"),
     )
 
-    # turns the object into a dict so we can return it as JSON
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "scenario": self.scenario,
-            "target_scenes": self.target_scenes,
-            "status": self.status,
-            "created_at": self.created_at.isoformat(),
-        }
-
 
 class Scene(db.Model):
     __tablename__ = "scenes"
@@ -61,14 +50,3 @@ class Scene(db.Model):
         db.CheckConstraint("status IN ('pending', 'annotated', 'approved', 'rejected')",
                            name="ck_scene_status"),
     )
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "batch_id": self.batch_id,
-            "scene_ref": self.scene_ref,
-            "status": self.status,
-            "label_count": self.label_count,
-            "notes": self.notes,
-            "created_at": self.created_at.isoformat(),
-        }
