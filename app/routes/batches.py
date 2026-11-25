@@ -8,6 +8,8 @@ from app.errors import error
 from app.extensions import db
 from app.models import Batch
 from app.schemas import BATCH_STATUSES, batch_schema, batches_schema
+from flask_jwt_extended import jwt_required
+from app.decorators import role_required
 
 batches_bp = Blueprint("batches", __name__, url_prefix="/api/batches")
 
