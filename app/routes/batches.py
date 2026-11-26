@@ -15,6 +15,7 @@ batches_bp = Blueprint("batches", __name__, url_prefix="/api/batches")
 
 
 @batches_bp.get("")
+@jwt_required()
 def list_batches():
     query = db.select(Batch).order_by(Batch.id)
     status = request.args.get("status")
@@ -27,6 +28,7 @@ def list_batches():
 
 
 @batches_bp.post("")
+@role_required("reviewer")
 def create_batch():
     # load() checks the input; bad input raises ValidationError -> 400 (errors.py)
     data = batch_schema.load(request.get_json(silent=True) or {})
@@ -41,12 +43,14 @@ def create_batch():
 
 
 @batches_bp.get("/<int:batch_id>")
+@jwt_required()
 def get_batch(batch_id):
     batch = db.get_or_404(Batch, batch_id, description="batch not found")
     return jsonify(batch_schema.dump(batch)), 200
 
 
 @batches_bp.patch("/<int:batch_id>")
+@role_required("reviewer")
 def update_batch(batch_id):
     batch = db.get_or_404(Batch, batch_id, description="batch not found")
     # partial=True: no field is required, but every field that IS sent is checked
@@ -62,6 +66,7 @@ def update_batch(batch_id):
 
 
 @batches_bp.delete("/<int:batch_id>")
+@role_required("reviewer")
 def delete_batch(batch_id):
     batch = db.get_or_404(Batch, batch_id, description="batch not found")
     db.session.delete(batch)

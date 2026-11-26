@@ -2,6 +2,7 @@
 # WHY:  Scenes are the actual work items, and each one belongs to a batch.
 
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
 
 from app.errors import error
 from app.extensions import db
@@ -12,6 +13,7 @@ scenes_bp = Blueprint("scenes", __name__, url_prefix="/api/batches")
 
 
 @scenes_bp.post("/<int:batch_id>/scenes")
+@jwt_required()
 def create_scene(batch_id):
     batch = db.get_or_404(Batch, batch_id, description="batch not found")
 
@@ -27,6 +29,7 @@ def create_scene(batch_id):
 
 
 @scenes_bp.get("/<int:batch_id>/scenes")
+@jwt_required()
 def list_scenes(batch_id):
     db.get_or_404(Batch, batch_id, description="batch not found")
     query = db.select(Scene).where(Scene.batch_id == batch_id).order_by(Scene.id)
