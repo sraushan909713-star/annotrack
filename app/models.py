@@ -3,9 +3,9 @@
 
 from datetime import datetime, timezone
 
-from app.extensions import db
-
 from werkzeug.security import check_password_hash, generate_password_hash
+
+from app.extensions import db
 
 
 def utc_now():
