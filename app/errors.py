@@ -4,6 +4,7 @@
 from flask import jsonify
 from werkzeug.exceptions import HTTPException
 from marshmallow import ValidationError
+from app.extensions import jwt
 
 
 def error(message, code):
@@ -21,8 +22,21 @@ def register_error_handlers(app):
     def handle_unexpected_error(e):
         app.logger.exception(e)
         return error("internal server error", 500)
-    
+
     # bad input anywhere -> 400 with the error for each field
     @app.errorhandler(ValidationError)
     def handle_validation_error(e):
         return jsonify(error="validation failed", details=e.messages), 400
+
+    # JWT problems -> 401 in our usual {"error": ...} shape
+    @jwt.unauthorized_loader
+    def missing_token(reason):
+        return error("missing or invalid token", 401)
+
+    @jwt.invalid_token_loader
+    def invalid_token(reason):
+        return error("invalid token", 401)
+
+    @jwt.expired_token_loader
+    def expired_token(jwt_header, jwt_payload):
+        return error("token expired, please log in again", 401)

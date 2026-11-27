@@ -33,3 +33,31 @@ batch_schema = BatchSchema()
 batches_schema = BatchSchema(many=True)
 scene_schema = SceneSchema()
 scenes_schema = SceneSchema(many=True) 
+
+
+ROLES = ["annotator", "reviewer"]
+
+
+class RegisterSchema(Schema):
+    username = fields.String(required=True, validate=validate.Length(min=3, max=80))
+    # load_only: accepted in requests, never sent back in responses
+    password = fields.String(required=True, load_only=True, validate=validate.Length(min=8))
+    role = fields.String(load_default="annotator", validate=validate.OneOf(ROLES))
+
+
+class LoginSchema(Schema):
+    username = fields.String(required=True)
+    password = fields.String(required=True, load_only=True)
+
+
+# what we send back about a user (no password field at all)
+class UserSchema(Schema):
+    id = fields.Integer(dump_only=True)
+    username = fields.String(dump_only=True)
+    role = fields.String(dump_only=True)
+    created_at = fields.DateTime(dump_only=True)
+
+
+register_schema = RegisterSchema()
+login_schema = LoginSchema()
+user_schema = UserSchema()

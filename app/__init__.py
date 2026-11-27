@@ -33,4 +33,7 @@ def create_app(config_class=Config):
     from app.errors import register_error_handlers
     register_error_handlers(app)
 
+    from app.routes.auth import auth_bp
+    app.register_blueprint(auth_bp)
+
     return app

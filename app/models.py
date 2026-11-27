@@ -3,6 +3,8 @@
 
 from datetime import datetime, timezone
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
 from app.extensions import db
 
 
@@ -50,3 +52,25 @@ class Scene(db.Model):
         db.CheckConstraint("status IN ('pending', 'annotated', 'approved', 'rejected')",
                            name="ck_scene_status"),
     )
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)  # never the real password
+    role = db.Column(db.String(20), nullable=False, default="annotator")
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+
+    __table_args__ = (
+        db.CheckConstraint("role IN ('annotator', 'reviewer')", name="ck_user_role"),
+    )
+
+    # turns "secret123" into a one-way hash before saving
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    # hashes the login attempt the same way and compares the two
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
