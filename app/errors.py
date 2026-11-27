@@ -22,12 +22,12 @@ def register_error_handlers(app):
     def handle_unexpected_error(e):
         app.logger.exception(e)
         return error("internal server error", 500)
-    
+
     # bad input anywhere -> 400 with the error for each field
     @app.errorhandler(ValidationError)
     def handle_validation_error(e):
         return jsonify(error="validation failed", details=e.messages), 400
-    
+
     # JWT problems -> 401 in our usual {"error": ...} shape
     @jwt.unauthorized_loader
     def missing_token(reason):
